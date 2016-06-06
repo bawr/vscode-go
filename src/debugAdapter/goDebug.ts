@@ -126,6 +126,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	args?: string[];
 	cwd?: string;
 	env?: { [key: string]: string; };
+	envReplace?: boolean;
 	mode?: string;
 	remotePath?: string;
 	port?: number;
@@ -156,7 +157,7 @@ class Delve {
 	onstdout: (str: string) => void;
 	onstderr: (str: string) => void;
 
-	constructor(mode: string, remotePath: string, port: number, host: string, program: string, args: string[], cwd: string, env: { [key: string]: string }, buildFlags: string, init: string) {
+	constructor(mode: string, remotePath: string, port: number, host: string, program: string, args: string[], cwd: string, env: { [key: string]: string }, envReplace: boolean, buildFlags: string, init: string) {
 		this.program = program;
 		this.remotePath = remotePath;
 		this.connection = new Promise((resolve, reject) => {
@@ -175,8 +176,10 @@ class Delve {
 			let dlvEnv: Object = null;
 			if (env) {
 				dlvEnv = {};
-				for (let k in process.env) {
-					dlvEnv[k] = process.env[k];
+				if (!envReplace) {
+					for (let k in process.env) {
+						dlvEnv[k] = process.env[k];
+					}
 				}
 				for (let k in env) {
 					dlvEnv[k] = env[k];
@@ -323,7 +326,7 @@ class GoDebugSession extends DebugSession {
 			}
 		}
 
-		this.delve = new Delve(args.mode, remotePath, port, host, args.program, args.args, args.cwd, args.env, args.buildFlags, args.init);
+		this.delve = new Delve(args.mode, remotePath, port, host, args.program, args.args, args.cwd, args.env, args.envReplace, args.buildFlags, args.init);
 		this.delve.onstdout = (str: string) => {
 			this.sendEvent(new OutputEvent(str, 'stdout'));
 		};
