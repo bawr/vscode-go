@@ -312,7 +312,9 @@ class GoDebugSession extends DebugSession {
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 		// Launch the Delve debugger on the program
 		let remotePath = args.remotePath || '';
-		let port = args.port || 2345;
+		let port_min = 60000;
+		let port_max = 65000;
+		let port = args.port || (Math.floor(Math.random() * (port_max - port_min)) + port_min);
 		let host = args.host || '127.0.0.1';
 
 		if (remotePath.length > 0) {
