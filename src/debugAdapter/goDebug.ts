@@ -127,6 +127,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	showLog?: boolean;
 	cwd?: string;
 	env?: { [key: string]: string; };
+	envReplace?: boolean;
 	mode?: string;
 	remotePath?: string;
 	port?: number;
@@ -157,7 +158,7 @@ class Delve {
 	onstdout: (str: string) => void;
 	onstderr: (str: string) => void;
 
-	constructor(mode: string, remotePath: string, port: number, host: string, program: string, args: string[], showLog: boolean, cwd: string, env: { [key: string]: string }, buildFlags: string, init: string) {
+	constructor(mode: string, remotePath: string, port: number, host: string, program: string, args: string[], showLog: boolean, cwd: string, env: { [key: string]: string }, envReplace: boolean, buildFlags: string, init: string) {
 		this.program = program;
 		this.remotePath = remotePath;
 		this.connection = new Promise((resolve, reject) => {
@@ -176,8 +177,10 @@ class Delve {
 			let dlvEnv: Object = null;
 			if (env) {
 				dlvEnv = {};
-				for (let k in process.env) {
-					dlvEnv[k] = process.env[k];
+				if (!envReplace) {
+					for (let k in process.env) {
+						dlvEnv[k] = process.env[k];
+					}
 				}
 				for (let k in env) {
 					dlvEnv[k] = env[k];
@@ -320,7 +323,9 @@ class GoDebugSession extends DebugSession {
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 		// Launch the Delve debugger on the program
 		let remotePath = args.remotePath || '';
-		let port = args.port || 2345;
+		let port_min = 60000;
+		let port_max = 65000;
+		let port = args.port || (Math.floor(Math.random() * (port_max - port_min)) + port_min);
 		let host = args.host || '127.0.0.1';
 
 		if (remotePath.length > 0) {
@@ -331,7 +336,7 @@ class GoDebugSession extends DebugSession {
 			}
 		}
 
-		this.delve = new Delve(args.mode, remotePath, port, host, args.program, args.args, args.showLog, args.cwd, args.env, args.buildFlags, args.init);
+		this.delve = new Delve(args.mode, remotePath, port, host, args.program, args.args, args.showLog, args.cwd, args.env, args.envReplace, args.buildFlags, args.init);
 		this.delve.onstdout = (str: string) => {
 			this.sendEvent(new OutputEvent(str, 'stdout'));
 		};
